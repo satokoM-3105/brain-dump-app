@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ブレインダンプ</title>
+  <style>
+    :root {
+      --peppermint-50: #f0fdf7;
+      --peppermint-100: #dcfceb;
+      --peppermint-200: #b8f5d8;
+      --peppermint-300: #7ee8b8;
+      --peppermint-400: #4dd4a0;
+      --peppermint-500: #3cb896;
+      --peppermint-600: #2d9f7a;
+      --peppermint-700: #247a5e;
+      --peppermint-800: #1e5c49;
+      --peppermint-900: #184a3b;
+      --text-primary: #1a3d32;
+      --text-secondary: #3d6b5c;
+      --text-muted: #5a8f7a;
+      --surface: #ffffff;
+      --surface-input: #f7fefb;
+      --border: #b8e6d0;
+      --shadow: rgba(30, 92, 73, 0.1);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Segoe UI", "Hiragino Sans", "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-primary);
+      background: linear-gradient(
+        160deg,
+        var(--peppermint-50) 0%,
+        #e8faf2 45%,
+        var(--peppermint-100) 100%
+      );
+      min-height: 100vh;
+    }
+
+    .app {
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 2.5rem;
+    }
+
+    h1 {
+      margin: 0 0 1.25rem;
+      font-size: 1.75rem;
+      font-weight: 700;
+      text-align: center;
+      color: var(--peppermint-800);
+    }
+
+    .message {
+      min-height: 2.75rem;
+      margin-bottom: 1rem;
+      padding: 0.65rem 1rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      display: none;
+    }
+
+    .message.is-visible {
+      display: block;
+    }
+
+    .message--success {
+      background: var(--peppermint-100);
+      color: var(--peppermint-800);
+      border: 1px solid var(--peppermint-300);
+    }
+
+    .message--error {
+      background: #fdeeed;
+      color: #8b3a34;
+      border: 1px solid #f0c4c0;
+    }
+
+    .form-section,
+    .list-section {
+      background: var(--surface);
+      border: 1px solid var(--peppermint-200);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px var(--shadow);
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .list-section h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--peppermint-800);
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.35rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    input[type="text"],
+    textarea,
+    select {
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      font-size: 16px;
+      font-family: inherit;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface-input);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    select {
+      min-height: 44px;
+      cursor: pointer;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--peppermint-500);
+      box-shadow: 0 0 0 3px rgba(60, 184, 150, 0.25);
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0.6rem 1.25rem;
+      font-size: 1rem;
+      font-family: inherit;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      width: 100%;
+      color: #fff;
+      background: var(--peppermint-500);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: var(--peppermint-600);
+    }
+
+    .btn-secondary {
+      color: var(--peppermint-800);
+      background: var(--peppermint-100);
+      border: 1px solid var(--peppermint-200);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--peppermint-200);
+    }
+
+    .btn-danger {
+      color: #fff;
+      background: #d4736a;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #b85a52;
+    }
+
+    .memo-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .memo-item {
+      padding: 1rem 0;
+      border-bottom: 1px solid var(--peppermint-200);
+    }
+
+    .memo-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+
+    .memo-item:first-child {
+      padding-top: 0;
+    }
+
+    .memo-title {
+      margin: 0 0 0.35rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--peppermint-800);
+      word-break: break-word;
+    }
+
+    .memo-category {
+      display: inline-block;
+      margin: 0 0 0.35rem;
+      padding: 0.2rem 0.6rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--peppermint-800);
+      background: var(--peppermint-100);
+      border: 1px solid var(--peppermint-200);
+      border-radius: 999px;
+    }
+
+    .memo-category--none {
+      color: var(--text-muted);
+      background: #f4f7f5;
+      border-color: var(--border);
+    }
+
+    .memo-date {
+      margin: 0 0 0.5rem;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .memo-preview {
+      margin: 0 0 0.75rem;
+      font-size: 0.95rem;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .memo-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .memo-actions .btn {
+      flex: 1;
+      min-width: 5rem;
+    }
+
+    .empty-state,
+    .loading-state {
+      margin: 0;
+      padding: 1rem 0;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    @media (min-width: 480px) {
+      .app {
+        padding: 2rem 1.5rem 3rem;
+      }
+
+      h1 {
+        font-size: 2rem;
+      }
+
+      .memo-actions .btn {
+        flex: 0 1 auto;
+        min-width: 6rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <h1>ブレインダンプ</h1>
+
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+
+    <section class="form-section" aria-label="メモ入力">
+      <label for="title">タイトル</label>
+      <input type="text" id="title" name="title" maxlength="500" placeholder="タイトルを入力" autocomplete="off">
+
+      <label for="category">カテゴリ</label>
+      <select id="category" name="category">
+        <option value="">カテゴリを選ぶ（任意）</option>
+      </select>
+
+      <label for="content">本文</label>
+      <textarea id="content" name="content" rows="6" placeholder="思考・アイデアを書き出す"></textarea>
+
+      <button type="button" id="saveBtn" class="btn btn-primary">保存</button>
+    </section>
+
+    <section class="list-section" aria-label="メモ一覧">
+      <h2>メモ一覧</h2>
+      <ul id="memoList" class="memo-list">
+        <li class="loading-state">読み込み中…</li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://hpdwutjnypgzwqmgzhjp.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhwZHd1dGpueXBnendxbWd6aGpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgzMzEwMjEsImV4cCI6MjA5MzkwNzAyMX0.IfXfYDW86YDE1Oz2IzFJJZdak97rnzFsdSQT3hJ_dEU";
+
+    const PREVIEW_MAX_LENGTH = 120;
+    const MESSAGE_CLEAR_MS = 4000;
+    const UNCATEGORIZED_LABEL = "未分類";
+
+    const MESSAGES = {
+      saveSuccess: "メモを保存しました",
+      updateSuccess: "メモを更新しました",
+      deleteSuccess: "メモを削除しました",
+      inputError: "タイトルと本文を入力してください",
+      connectionError: "データの取得に失敗しました。しばらくしてから再度お試しください",
+      otherError: "エラーが発生しました",
+    };
+
+    let editingId = null;
+    let messageTimer = null;
+    let cachedMemos = [];
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    const messageEl = document.getElementById("message");
+    const titleEl = document.getElementById("title");
+    const categoryEl = document.getElementById("category");
+    const contentEl = document.getElementById("content");
+    const saveBtn = document.getElementById("saveBtn");
+    const memoListEl = document.getElementById("memoList");
+
+    function trimRequired(value) {
+      return value.trim();
+    }
+
+    function validateInput() {
+      const title = trimRequired(titleEl.value);
+      const content = trimRequired(contentEl.value);
+      if (!title || !content) {
+        showMessage("error", MESSAGES.inputError);
+        return null;
+      }
+      return { title, content, category_id: getSelectedCategoryId() };
+    }
+
+    function getSelectedCategoryId() {
+      const value = categoryEl.value;
+      return value ? value : null;
+    }
+
+    function showMessage(type, text) {
+      if (messageTimer) {
+        clearTimeout(messageTimer);
+        messageTimer = null;
+      }
+
+      messageEl.textContent = text;
+      messageEl.className = "message is-visible message--" + (type === "success" ? "success" : "error");
+
+      if (type === "success") {
+        messageTimer = setTimeout(function () {
+          messageEl.className = "message";
+          messageEl.textContent = "";
+        }, MESSAGE_CLEAR_MS);
+      }
+    }
+
+    function clearForm() {
+      titleEl.value = "";
+      categoryEl.value = "";
+      contentEl.value = "";
+      editingId = null;
+      saveBtn.textContent = "保存";
+    }
+
+    function setEditMode(id, title, content, categoryId) {
+      editingId = id;
+      titleEl.value = title;
+      contentEl.value = content;
+      categoryEl.value = categoryId || "";
+      saveBtn.textContent = "更新";
+      messageEl.className = "message";
+      messageEl.textContent = "";
+      titleEl.focus();
+    }
+
+    function formatDate(isoString) {
+      const d = new Date(isoString);
+      if (Number.isNaN(d.getTime())) return isoString;
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      const h = String(d.getHours()).padStart(2, "0");
+      const min = String(d.getMinutes()).padStart(2, "0");
+      return y + "/" + m + "/" + day + " " + h + ":" + min;
+    }
+
+    function previewContent(text) {
+      if (text.length <= PREVIEW_MAX_LENGTH) return text;
+      return text.slice(0, PREVIEW_MAX_LENGTH) + "…";
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function getCategoryDisplayName(memo) {
+      if (memo.categories && memo.categories.name) {
+        return memo.categories.name;
+      }
+      return UNCATEGORIZED_LABEL;
+    }
+
+    function renderCategoryBadge(memo) {
+      const name = getCategoryDisplayName(memo);
+      const isUncategorized = name === UNCATEGORIZED_LABEL;
+      const className = isUncategorized ? "memo-category memo-category--none" : "memo-category";
+      return '<p class="' + className + '">' + escapeHtml(name) + "</p>";
+    }
+
+    async function loadCategories() {
+      const { data, error } = await supabaseClient
+        .from("categories")
+        .select("id, name")
+        .order("name", { ascending: true });
+
+      categoryEl.innerHTML = '<option value="">カテゴリを選ぶ（任意）</option>';
+
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      (data || []).forEach(function (cat) {
+        const option = document.createElement("option");
+        option.value = cat.id;
+        option.textContent = cat.name;
+        categoryEl.appendChild(option);
+      });
+    }
+
+    async function loadMemos() {
+      memoListEl.innerHTML = '<li class="loading-state">読み込み中…</li>';
+
+      const { data, error } = await supabaseClient
+        .from("brain_dumps")
+        .select("id, title, content, category_id, created_at, categories(name)")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error(error);
+        cachedMemos = [];
+        memoListEl.innerHTML = "";
+        showMessage("error", MESSAGES.connectionError);
+        return;
+      }
+
+      cachedMemos = data || [];
+
+      if (cachedMemos.length === 0) {
+        memoListEl.innerHTML = '<li class="empty-state">メモはありません</li>';
+        return;
+      }
+
+      memoListEl.innerHTML = cachedMemos
+        .map(function (memo) {
+          return (
+            '<li class="memo-item" data-id="' + escapeHtml(memo.id) + '">' +
+              '<h3 class="memo-title">' + escapeHtml(memo.title) + "</h3>" +
+              renderCategoryBadge(memo) +
+              '<p class="memo-date">' + escapeHtml(formatDate(memo.created_at)) + "</p>" +
+              '<p class="memo-preview">' + escapeHtml(previewContent(memo.content)) + "</p>" +
+              '<div class="memo-actions">' +
+                '<button type="button" class="btn btn-secondary btn-edit" data-id="' + escapeHtml(memo.id) + '">編集</button>' +
+                '<button type="button" class="btn btn-danger btn-delete" data-id="' + escapeHtml(memo.id) + '">削除</button>' +
+              "</div>" +
+            "</li>"
+          );
+        })
+        .join("");
+    }
+
+    async function saveMemo() {
+      const input = validateInput();
+      if (!input) return;
+
+      saveBtn.disabled = true;
+
+      if (editingId) {
+        const { error } = await supabaseClient
+          .from("brain_dumps")
+          .update({
+            title: input.title,
+            content: input.content,
+            category_id: input.category_id,
+          })
+          .eq("id", editingId);
+
+        saveBtn.disabled = false;
+
+        if (error) {
+          console.error(error);
+          showMessage("error", MESSAGES.otherError);
+          return;
+        }
+
+        clearForm();
+        await loadMemos();
+        showMessage("success", MESSAGES.updateSuccess);
+      } else {
+        const { error } = await supabaseClient
+          .from("brain_dumps")
+          .insert([
+            {
+              title: input.title,
+              content: input.content,
+              category_id: input.category_id,
+            },
+          ]);
+
+        saveBtn.disabled = false;
+
+        if (error) {
+          console.error(error);
+          showMessage("error", MESSAGES.otherError);
+          return;
+        }
+
+        clearForm();
+        await loadMemos();
+        showMessage("success", MESSAGES.saveSuccess);
+      }
+    }
+
+    function handleEditClick(id) {
+      const memo = cachedMemos.find(function (m) {
+        return m.id === id;
+      });
+      if (!memo) {
+        showMessage("error", MESSAGES.otherError);
+        return;
+      }
+      setEditMode(memo.id, memo.title, memo.content, memo.category_id);
+    }
+
+    async function deleteMemo(id) {
+      if (!confirm("このメモを削除しますか？")) return;
+
+      const { error } = await supabaseClient.from("brain_dumps").delete().eq("id", id);
+
+      if (error) {
+        console.error(error);
+        showMessage("error", MESSAGES.otherError);
+        return;
+      }
+
+      if (editingId === id) {
+        clearForm();
+      }
+
+      await loadMemos();
+      showMessage("success", MESSAGES.deleteSuccess);
+    }
+
+    saveBtn.addEventListener("click", saveMemo);
+
+    memoListEl.addEventListener("click", function (e) {
+      const editBtn = e.target.closest(".btn-edit");
+      const deleteBtn = e.target.closest(".btn-delete");
+
+      if (editBtn) {
+        handleEditClick(editBtn.getAttribute("data-id"));
+        return;
+      }
+
+      if (deleteBtn) {
+        deleteMemo(deleteBtn.getAttribute("data-id"));
+      }
+    });
+
+    (async function init() {
+      await loadCategories();
+      await loadMemos();
+    })();
+  </script>
+</body>
+</html>
