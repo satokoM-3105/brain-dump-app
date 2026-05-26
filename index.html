@@ -125,8 +125,16 @@
     }
 
     select {
-      min-height: 44px;
+      min-height: 48px;
       cursor: pointer;
+      -webkit-appearance: menulist;
+      appearance: auto;
+      color: var(--text-primary);
+    }
+
+    select:disabled {
+      opacity: 0.7;
+      cursor: wait;
     }
 
     input[type="text"]:focus,
@@ -334,12 +342,15 @@
       deleteSuccess: "メモを削除しました",
       inputError: "タイトルと本文を入力してください",
       connectionError: "データの取得に失敗しました。しばらくしてから再度お試しください",
+      categoryLoadError: "カテゴリの取得に失敗しました。SupabaseでSQLを実行したか確認してください",
+      categoryEmpty: "カテゴリが登録されていません。SupabaseのSQL Editorで仮データを投入してください",
       otherError: "エラーが発生しました",
     };
 
     let editingId = null;
     let messageTimer = null;
     let cachedMemos = [];
+    let cachedCategories = [];
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -427,11 +438,17 @@
       return div.innerHTML;
     }
 
+    function resolveCategoryName(categoryId, joined) {
+      if (joined && joined.name) return joined.name;
+      if (!categoryId) return UNCATEGORIZED_LABEL;
+      const cat = cachedCategories.find(function (c) {
+        return c.id === categoryId;
+      });
+      return cat ? cat.name : UNCATEGORIZED_LABEL;
+    }
+
     function getCategoryDisplayName(memo) {
-      if (memo.categories && memo.categories.name) {
-        return memo.categories.name;
-      }
-      return UNCATEGORIZED_LABEL;
+      return resolveCategoryName(memo.category_id, memo.categories);
     }
 
     function renderCategoryBadge(memo) {
@@ -442,19 +459,32 @@
     }
 
     async function loadCategories() {
+      categoryEl.disabled = true;
+      categoryEl.innerHTML = '<option value="">カテゴリを読み込み中…</option>';
+
       const { data, error } = await supabaseClient
         .from("categories")
         .select("id, name")
         .order("name", { ascending: true });
 
       categoryEl.innerHTML = '<option value="">カテゴリを選ぶ（任意）</option>';
+      categoryEl.disabled = false;
 
       if (error) {
         console.error(error);
+        cachedCategories = [];
+        showMessage("error", MESSAGES.categoryLoadError);
         return;
       }
 
-      (data || []).forEach(function (cat) {
+      cachedCategories = data || [];
+
+      if (cachedCategories.length === 0) {
+        showMessage("error", MESSAGES.categoryEmpty);
+        return;
+      }
+
+      cachedCategories.forEach(function (cat) {
         const option = document.createElement("option");
         option.value = cat.id;
         option.textContent = cat.name;
@@ -465,10 +495,26 @@
     async function loadMemos() {
       memoListEl.innerHTML = '<li class="loading-state">読み込み中…</li>';
 
-      const { data, error } = await supabaseClient
+      let data = null;
+      let error = null;
+
+      const withJoin = await supabaseClient
         .from("brain_dumps")
         .select("id, title, content, category_id, created_at, categories(name)")
         .order("created_at", { ascending: false });
+
+      data = withJoin.data;
+      error = withJoin.error;
+
+      if (error) {
+        console.error(error);
+        const plain = await supabaseClient
+          .from("brain_dumps")
+          .select("id, title, content, category_id, created_at")
+          .order("created_at", { ascending: false });
+        data = plain.data;
+        error = plain.error;
+      }
 
       if (error) {
         console.error(error);
