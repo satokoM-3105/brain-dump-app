@@ -53,11 +53,44 @@
     }
 
     h1 {
-      margin: 0 0 1.25rem;
+      margin: 0 0 0.75rem;
       font-size: 1.75rem;
       font-weight: 700;
       text-align: center;
       color: var(--peppermint-800);
+    }
+
+    .auth-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border: 1px solid var(--peppermint-200);
+      border-radius: 10px;
+      box-shadow: 0 1px 8px var(--shadow);
+    }
+
+    .auth-email {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      word-break: break-all;
+    }
+
+    .auth-email strong {
+      color: var(--peppermint-800);
+      font-weight: 600;
+    }
+
+    .btn-logout {
+      flex-shrink: 0;
+      min-height: 40px;
+      padding: 0.45rem 1rem;
+      font-size: 0.9rem;
     }
 
     .message {
@@ -86,13 +119,28 @@
     }
 
     .form-section,
-    .list-section {
+    .list-section,
+    .auth-section {
       background: var(--surface);
       border: 1px solid var(--peppermint-200);
       border-radius: 12px;
       box-shadow: 0 2px 12px var(--shadow);
       padding: 1.25rem;
       margin-bottom: 1.25rem;
+    }
+
+    .auth-section .btn-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .auth-section .btn-primary {
+      width: 100%;
+    }
+
+    .is-hidden {
+      display: none !important;
     }
 
     .list-section h2 {
@@ -111,6 +159,8 @@
     }
 
     input[type="text"],
+    input[type="email"],
+    input[type="password"],
     textarea,
     select {
       width: 100%;
@@ -138,6 +188,8 @@
     }
 
     input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus,
     textarea:focus,
     select:focus {
       outline: none;
@@ -302,29 +354,49 @@
   <main class="app">
     <h1>ブレインダンプ</h1>
 
-    <div id="message" class="message" role="status" aria-live="polite"></div>
+    <section id="authView" class="auth-section is-hidden" aria-label="ログイン">
+      <label for="email">メールアドレス</label>
+      <input type="email" id="email" name="email" autocomplete="email" placeholder="example@mail.com">
 
-    <section class="form-section" aria-label="メモ入力">
-      <label for="title">タイトル</label>
-      <input type="text" id="title" name="title" maxlength="500" placeholder="タイトルを入力" autocomplete="off">
+      <label for="password">パスワード</label>
+      <input type="password" id="password" name="password" autocomplete="current-password" placeholder="6文字以上">
 
-      <label for="category">カテゴリ</label>
-      <select id="category" name="category">
-        <option value="">カテゴリを選ぶ（任意）</option>
-      </select>
-
-      <label for="content">本文</label>
-      <textarea id="content" name="content" rows="6" placeholder="思考・アイデアを書き出す"></textarea>
-
-      <button type="button" id="saveBtn" class="btn btn-primary">保存</button>
+      <div class="btn-row">
+        <button type="button" id="loginBtn" class="btn btn-primary">ログイン</button>
+        <button type="button" id="registerBtn" class="btn btn-secondary">新規登録</button>
+      </div>
     </section>
 
-    <section class="list-section" aria-label="メモ一覧">
-      <h2>メモ一覧</h2>
-      <ul id="memoList" class="memo-list">
-        <li class="loading-state">読み込み中…</li>
-      </ul>
-    </section>
+    <div id="appView" class="is-hidden">
+      <div class="auth-bar" aria-label="ログイン情報">
+        <p class="auth-email">ログイン中: <strong id="userEmail">—</strong></p>
+        <button type="button" id="logoutBtn" class="btn btn-secondary btn-logout">ログアウト</button>
+      </div>
+
+      <div id="message" class="message" role="status" aria-live="polite"></div>
+
+      <section class="form-section" aria-label="メモ入力">
+        <label for="title">タイトル</label>
+        <input type="text" id="title" name="title" maxlength="500" placeholder="タイトルを入力" autocomplete="off">
+
+        <label for="category">カテゴリ</label>
+        <select id="category" name="category">
+          <option value="">カテゴリを選ぶ（任意）</option>
+        </select>
+
+        <label for="content">本文</label>
+        <textarea id="content" name="content" rows="6" placeholder="思考・アイデアを書き出す"></textarea>
+
+        <button type="button" id="saveBtn" class="btn btn-primary">保存</button>
+      </section>
+
+      <section class="list-section" aria-label="メモ一覧">
+        <h2>メモ一覧</h2>
+        <ul id="memoList" class="memo-list">
+          <li class="loading-state">読み込み中…</li>
+        </ul>
+      </section>
+    </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -334,6 +406,7 @@
 
     const PREVIEW_MAX_LENGTH = 120;
     const MESSAGE_CLEAR_MS = 4000;
+    const MIN_PASSWORD_LENGTH = 6;
     const UNCATEGORIZED_LABEL = "未分類";
 
     const MESSAGES = {
@@ -342,8 +415,7 @@
       deleteSuccess: "メモを削除しました",
       inputError: "タイトルと本文を入力してください",
       connectionError: "データの取得に失敗しました。しばらくしてから再度お試しください",
-      categoryLoadError: "カテゴリの取得に失敗しました。SupabaseでSQLを実行したか確認してください",
-      categoryEmpty: "カテゴリが登録されていません。SupabaseのSQL Editorで仮データを投入してください",
+      categoryLoadError: "カテゴリの取得に失敗しました",
       otherError: "エラーが発生しました",
     };
 
@@ -354,12 +426,107 @@
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    const authViewEl = document.getElementById("authView");
+    const appViewEl = document.getElementById("appView");
+    const emailEl = document.getElementById("email");
+    const passwordEl = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
+    const registerBtn = document.getElementById("registerBtn");
     const messageEl = document.getElementById("message");
     const titleEl = document.getElementById("title");
     const categoryEl = document.getElementById("category");
     const contentEl = document.getElementById("content");
     const saveBtn = document.getElementById("saveBtn");
     const memoListEl = document.getElementById("memoList");
+    const userEmailEl = document.getElementById("userEmail");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    function validateAuthInput() {
+      const email = emailEl.value.trim();
+      const password = passwordEl.value;
+
+      if (!email) {
+        alert("メールアドレスを入力してください");
+        return null;
+      }
+
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        alert("パスワードは6文字以上で入力してください");
+        return null;
+      }
+
+      return { email, password };
+    }
+
+    function setAuthButtonsDisabled(disabled) {
+      loginBtn.disabled = disabled;
+      registerBtn.disabled = disabled;
+    }
+
+    function showAuthView() {
+      authViewEl.classList.remove("is-hidden");
+      appViewEl.classList.add("is-hidden");
+      passwordEl.value = "";
+      logoutBtn.disabled = false;
+    }
+
+    async function showAppView(email) {
+      authViewEl.classList.add("is-hidden");
+      appViewEl.classList.remove("is-hidden");
+      userEmailEl.textContent = email || "—";
+      clearForm();
+      messageEl.className = "message";
+      messageEl.textContent = "";
+      await loadCategories();
+      await loadMemos();
+    }
+
+    async function handleLogin() {
+      const input = validateAuthInput();
+      if (!input) return;
+
+      setAuthButtonsDisabled(true);
+
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: input.email,
+        password: input.password,
+      });
+
+      setAuthButtonsDisabled(false);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      await showAppView(data.user.email);
+    }
+
+    async function handleRegister() {
+      const input = validateAuthInput();
+      if (!input) return;
+
+      setAuthButtonsDisabled(true);
+
+      const { data, error } = await supabaseClient.auth.signUp({
+        email: input.email,
+        password: input.password,
+      });
+
+      setAuthButtonsDisabled(false);
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      if (!data.session) {
+        alert(MESSAGES.otherError);
+        return;
+      }
+
+      await showAppView(data.user.email);
+    }
 
     function trimRequired(value) {
       return value.trim();
@@ -479,11 +646,6 @@
 
       cachedCategories = data || [];
 
-      if (cachedCategories.length === 0) {
-        showMessage("error", MESSAGES.categoryEmpty);
-        return;
-      }
-
       cachedCategories.forEach(function (cat) {
         const option = document.createElement("option");
         option.value = cat.id;
@@ -495,12 +657,16 @@
     async function loadMemos() {
       memoListEl.innerHTML = '<li class="loading-state">読み込み中…</li>';
 
+      const { data: userData } = await supabaseClient.auth.getUser();
+      const user = userData.user;
+
       let data = null;
       let error = null;
 
       const withJoin = await supabaseClient
         .from("brain_dumps")
         .select("id, title, content, category_id, created_at, categories(name)")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
       data = withJoin.data;
@@ -511,6 +677,7 @@
         const plain = await supabaseClient
           .from("brain_dumps")
           .select("id, title, content, category_id, created_at")
+          .eq("user_id", user.id)
           .order("created_at", { ascending: false });
         data = plain.data;
         error = plain.error;
@@ -577,6 +744,9 @@
         await loadMemos();
         showMessage("success", MESSAGES.updateSuccess);
       } else {
+        const { data: userData } = await supabaseClient.auth.getUser();
+        const user = userData.user;
+
         const { error } = await supabaseClient
           .from("brain_dumps")
           .insert([
@@ -584,6 +754,7 @@
               title: input.title,
               content: input.content,
               category_id: input.category_id,
+              user_id: user.id,
             },
           ]);
 
@@ -632,6 +803,19 @@
     }
 
     saveBtn.addEventListener("click", saveMemo);
+    loginBtn.addEventListener("click", handleLogin);
+    registerBtn.addEventListener("click", handleRegister);
+
+    logoutBtn.addEventListener("click", async function () {
+      logoutBtn.disabled = true;
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        logoutBtn.disabled = false;
+        alert(error.message);
+        return;
+      }
+      showAuthView();
+    });
 
     memoListEl.addEventListener("click", function (e) {
       const editBtn = e.target.closest(".btn-edit");
@@ -648,8 +832,14 @@
     });
 
     (async function init() {
-      await loadCategories();
-      await loadMemos();
+      const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
+
+      if (sessionError || !sessionData.session) {
+        showAuthView();
+        return;
+      }
+
+      await showAppView(sessionData.session.user.email);
     })();
   </script>
 </body>
